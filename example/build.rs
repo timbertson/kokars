@@ -19,7 +19,7 @@ fn main() {
 			e => panic!("{:?}", e),
 		},
 		|bindings| {
-			bindings.write_to_file("generated/examples.h");
+			bindings.write_to_file("generated/rust.h");
 		},
 	);
 }

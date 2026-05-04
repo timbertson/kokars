@@ -1,5 +1,5 @@
 [package]
-name = "kokars-examples"
+name = "kokars-example"
 version = "0.1.0"
 edition = "2024"
 build = "build.rs"
@@ -9,6 +9,7 @@ crate-type = ["staticlib"]
 
 [dependencies]
 libc = "0.2.0"
+kokars = { path = "../kokars" }
 
 [build-dependencies]
 cbindgen = "0.29.2"
