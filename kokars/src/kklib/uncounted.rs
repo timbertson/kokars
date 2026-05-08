@@ -1,5 +1,5 @@
-use std::mem::ManuallyDrop;
-use std::ptr;
+use core::mem::ManuallyDrop;
+use core::ptr;
 
 /*
  * A copy of an owned value which is exempt

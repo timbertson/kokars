@@ -1,13 +1,14 @@
 mod generated;
 mod uncounted;
+mod nostd;
 
 pub use generated::*;
 pub use uncounted::*;
 
-use std::marker::PhantomData;
-use std::mem::MaybeUninit;
-use std::slice;
-use std::fmt;
+use core::marker::PhantomData;
+use core::mem::MaybeUninit;
+use core::slice;
+use core::fmt;
 use libc::*;
 
 pub type KkContext = *const kk_context_t;
@@ -47,7 +48,7 @@ impl<A,Ret> KkFunction1<A, Ret> {
 }
 
 unsafe fn drop_without_refcount<A>(a: A) {
-	std::mem::forget(a);
+	core::mem::forget(a);
 }
 
 pub unsafe fn kk_function_call_1<A,Ret>(f: kk_function_t, a: A, _ctx: KkContext) -> Ret {
@@ -57,7 +58,7 @@ pub unsafe fn kk_function_call_1<A,Ret>(f: kk_function_t, a: A, _ctx: KkContext)
 		drop_without_refcount(f);
 
 		let raw_cfn = kk_function_cptr_borrow_c(fvalue.clone(), _ctx);
-		let typed_cfn = std::mem::transmute::<KkFunPtrVoid, KkFunPtr1<A, Ret>>(raw_cfn);
+		let typed_cfn = core::mem::transmute::<KkFunPtrVoid, KkFunPtr1<A, Ret>>(raw_cfn);
 		typed_cfn(fvalue, a, _ctx)
 	}
 }
@@ -68,4 +69,3 @@ impl fmt::Debug for kk_function_t {
 		write!(f, "{:p}", ptr)
 	}
 }
-

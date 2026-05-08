@@ -50,7 +50,7 @@ fun opaque_struct(name, size: ssize_t, can_box = True, wrap_drop = True, assume_
       // Clone takes a reference and returns a fresh value from *_dup()
       "impl Clone for " ++ tname ++ "{",
       "  fn clone(&self) -> Self {",
-      "    println!(\"[dup:" ++ tname ++ "]\");",
+      // "    println!(\"[dup:" ++ tname ++ "]\");",
       "    unsafe {",
       "      " ++ dup_fn ++ "(Uncounted::unsafe_from_ref(self), kk_get_context())",
       "    }",
@@ -60,7 +60,7 @@ fun opaque_struct(name, size: ssize_t, can_box = True, wrap_drop = True, assume_
       // Drop performs a _drop on every koka value
       "impl Drop for " ++ tname ++ "{",
       "  fn drop(&mut self) {",
-      "    println!(\"[drop:" ++ tname ++ "]\");",
+      // "    println!(\"[drop:" ++ tname ++ "]\");",
       "    unsafe {",
              // TODO can we pass in the ctx somehow?
       "      " ++ drop_fn ++ "(Uncounted::unsafe_from_ref(self), kk_get_context())",

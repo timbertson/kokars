@@ -14,7 +14,5 @@ koka standard types:
 
 # Todo:
 
- - Integrate kk allocator
- - Investigate no-std
  - Something about platform awareness (kklib types may differ in size, for example)
  - Publish a crate?

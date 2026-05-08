@@ -220,6 +220,7 @@ version = "0.1.0"
 dependencies = [
  "cbindgen",
  "libc",
+ "libc-print",
 ]
 
 [[package]]
@@ -229,6 +230,7 @@ dependencies = [
  "cbindgen",
  "kokars",
  "libc",
+ "libc-print",
 ]
 
 [[package]]
@@ -242,6 +244,15 @@ name = "libc"
 version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
+
+[[package]]
+name = "libc-print"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e4fb34ccfede7d939c50cf24b65e228fa2af1d3b49f6efd44b080dd3dcf2f1e"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "linux-raw-sys"

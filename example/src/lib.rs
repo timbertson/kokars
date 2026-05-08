@@ -1,4 +1,7 @@
+#![no_std]
+
 use kokars::kklib::*;
+use libc_print::std_name::println;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kk_hello_rs(_c: KkContext) {
