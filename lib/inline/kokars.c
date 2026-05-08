@@ -1,17 +1,23 @@
-/*
- * A number of useful functionality is exposed only as static functions in a header file.
- * Reexport them as regular functions here so that rust can access them.
- *
- * TODO does this impact performance?
- */
-const char* kk_string_cbuf_borrow_c(const kk_string_t str, kk_ssize_t* len, kk_context_t* ctx) {
-	return kk_string_cbuf_borrow(str, len, ctx);
+reexport_static1(kk_ssize_t, kk_to_ssize_t, size_t);
+reexport_static1(size_t, kk_to_size_t, kk_ssize_t);
+
+reexport_static2(void, kk_function_drop, kk_function_t, kk_context_t*);
+reexport_static2(kk_function_t, kk_function_dup, kk_function_t, kk_context_t*);
+
+reexport_static2(void, kk_string_drop, kk_string_t, kk_context_t*);
+reexport_static2(kk_string_t, kk_string_dup, kk_string_t, kk_context_t*);
+
+reexport_static2(void, kk_box_drop, kk_box_t, kk_context_t*);
+reexport_static2(kk_box_t, kk_box_dup, kk_box_t, kk_context_t*);
+
+reexport_static2(void, kk_integer_drop, kk_integer_t, kk_context_t*);
+reexport_static2(kk_integer_t, kk_integer_dup, kk_integer_t, kk_context_t*);
+
+reexport_static3(const char*, kk_string_cbuf_borrow, const kk_string_t, kk_ssize_t*, kk_context_t*);
+
+typedef void (*void_fn_ptr)();
+
+void_fn_ptr kk_function_cptr_borrow_c(kk_function_t f, kk_context_t* ctx) {
+	return kk_kkfun_ptr_unbox(kk_datatype_as_assert(struct kk_function_s*, f, KK_TAG_FUNCTION,ctx)->fun, ctx);
 }
 
-kk_ssize_t kk_to_ssize_t_c(size_t s) {
-	return kk_to_ssize_t(s);
-}
-
-size_t kk_to_size_t_c(kk_ssize_t s) {
-	return kk_to_size_t(s);
-}

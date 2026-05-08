@@ -1,4 +1,4 @@
 module kokars
 
 extern import
-  c file "inline/kokars.c"
+  c file "inline/kokars"
