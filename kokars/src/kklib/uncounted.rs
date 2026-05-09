@@ -25,7 +25,7 @@ impl<T> Uncounted<T> {
 	}
 
 	// We don't implement the Copy trait, since this method is unsafe
-	pub unsafe fn clone(&self) -> Uncounted<T> {
+	pub unsafe fn uncounted_copy(&self) -> Uncounted<T> {
 		unsafe {
 			Uncounted::unsafe_from_ref(&self.inner)
 		}
