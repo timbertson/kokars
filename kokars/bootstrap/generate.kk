@@ -8,6 +8,9 @@ fun main()
   println("unsafe extern \"C\" {");
   println("  pub fn kk_get_context() -> *const kk_context_t;");
   println("}");
+  
+  println("#[repr(C, align(" ++ max_align_size().int.show ++ "))]");
+  println("pub struct KkAllocator;");
 
   opaque_struct("kk_ssize", s_ssize(), assume_value_type = True)
   opaque_struct("kk_string", s_string())
@@ -21,6 +24,8 @@ extern s_function(): ssize_t { c inline "sizeof(kk_function_t)" }
 extern s_tag(): ssize_t { c inline "sizeof(kk_tag_t)" }
 extern s_integer(): ssize_t { c inline "sizeof(kk_integer_t)" }
 extern s_ssize(): ssize_t { c inline "sizeof(kk_ssize_t)" }
+
+extern max_align_size(): ssize_t { c inline "MI_MAX_ALIGN_SIZE" }
 
 fun extern_c(str)
   ["unsafe extern \"C\" {", "pub " ++ str, "}" ].join("\n")

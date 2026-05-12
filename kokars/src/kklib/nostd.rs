@@ -9,7 +9,7 @@ panic="abort"
 
  */
 
-use super::generated::{kk_context_t, kk_ssize_t, kk_get_context};
+use super::generated::*;
 use super::size::*;
 
 use libc_print::std_name::eprintln;
@@ -35,10 +35,6 @@ unsafe extern "C" {
 	pub fn kk_malloc_aligned_c(sz: kk_ssize_t, alignment: kk_ssize_t, ctx: *const kk_context_t) -> *mut u8;
 	pub fn kk_free_c(ptr: *mut u8, ctx: *const kk_context_t);
 }
-
-// TODO can we get this from koka? It defines MI_MAX_ALIGN_SIZE
-#[repr(C, align(4096))] // 4096 == MAX_SUPPORTED_ALIGN
-struct KkAllocator;
 
 #[global_allocator]
 static ALLOCATOR: KkAllocator = KkAllocator;
