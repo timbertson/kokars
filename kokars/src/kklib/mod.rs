@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 mod nostd; // no need to export this
 
 mod generated;
@@ -20,3 +22,6 @@ pub use size::*;
 
 mod boxed;
 pub use boxed::*;
+
+mod krc;
+pub use krc::*;

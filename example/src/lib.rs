@@ -1,5 +1,6 @@
 #![no_std]
 #![allow(unused_doc_comments)]
+#![allow(non_camel_case_types)]
 
 extern crate alloc;
 
