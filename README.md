@@ -54,3 +54,9 @@ This module is mostly a C extension to add additional symbols needed by the rust
 Your rust code depends on the `kklib` crate. Every function to be called from koka must be `#[unsafe(no_mangle)] pub extern "C" fn ...`
 
 Then your koka code imports the `kokars` (koka) module, ensuring everything the `kokars` rust crate needs at link time will be present.
+
+# Naming conventions
+
+Lowercase types (e.g. `kk_string_t`) are the regular koka types. Titlecase types like `KkFunction` are rust wrappers, often adding additional type safetly or functionality not directly exposed in koka's C API.
+
+Functions with `_c` appended are reexports of static functions - e.g. `kk_to_ssize_t_c` is a regular function (visible to the linker) which invokes the `kk_to_ssize_t` static C function (not visible to the linker).

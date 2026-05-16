@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(unused_doc_comments)]
 
 extern crate alloc;
 
@@ -32,42 +33,20 @@ pub struct Handle {
 	id: i32,
 }
 
-// unsafe extern "C" {
-// 	pub fn kk_hello__rust_handle_drop(h: Uncounted<kk_hello__rust_handle>, ctx: *const kk_context_t);
-// }
-
-// The C type matching what the koka compiler will generate from hello.kk `rust-handle` structure.
-// Manage this carefully, it cannot currently be derived from the generated koka code
+// kk_hello__rust_handle has the same layout as KkBoxWrapper<Handle>, but we
+// need to create a rust-only alias and use koka's generated C name so that the C compiler is happy.
 /// cbindgen:ignore
-#[repr(C)]
-pub struct kk_hello__rust_handle {
-	internal: kk_box_t,
-}
-// impl Drop for kk_hello__rust_handle {
-// 	fn drop(&mut self) {
-// 		println!("dropping kk_hello_rust_handle");
-// 		unsafe {
-// 			kk_hello__rust_handle_drop(Uncounted::unsafe_from_ref(self), kk_get_context());
-// 		}
-// 	}
-// }
+type kk_hello__rust_handle = KkBoxWrapper<Handle>;
 
 #[unsafe(no_mangle)]
-pub extern "C" fn kk_generate_handle(i: i32, ctx: KkContext) -> kk_box_t {
+pub extern "C" fn kk_generate_handle(i: i32, ctx: KkContext) -> kk_hello__rust_handle {
 	println!("Allocating handle: {}", i);
-	let h = Box::new(Handle { id: i });
-	let h_ptr: *const Handle = &*h;
-	println!("box ptr = {:?}", h_ptr);
-	kk_raw_box(kk_free_handle, h, ctx)
+	KkBoxWrapper::new(KkBox::new(kk_free_handle, Handle { id: i }, ctx))
 }
 
 #[unsafe(no_mangle)]
-// pub extern "C" fn kk_show_handle(h: kk_hello__rust_handle, ctx: KkContext) -> kk_string_t {
-// 	let ptr = unsafe { kk_box_to_ptr::<Handle>(&h.internal, ctx) };
-pub extern "C" fn kk_show_handle(h: kk_box_t, ctx: KkContext) -> kk_string_t {
-	let ptr = unsafe { kk_box_to_ptr::<Handle>(&h, ctx) };
-	let h_ptr: *const Handle = &*ptr;
-	println!("showing ptr {:?}", h_ptr);
+pub extern "C" fn kk_show_handle(h: kk_hello__rust_handle, ctx: KkContext) -> kk_string_t {
+	let ptr = h.value.as_ref(ctx);
 	let shown = format!("Handle({})", ptr.id);
 	kk_string_alloc_dup_valid_utf8(&shown, ctx)
 }

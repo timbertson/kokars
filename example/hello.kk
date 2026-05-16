@@ -24,19 +24,11 @@ struct rust-handle {
   internal: any
 }
 
-extern kkrs-generate-handle(i: int32): any
+extern kkrs-generate-handle(i: int32): rust-handle
   c "kk_generate_handle"
 
-fun rust-handle(i: int) Rust-handle(kkrs-generate-handle(i.int32))
-
-extern show-handle-inner(h: any): string
+extern rust-handle/show(h: rust-handle): string
   c "kk_show_handle"
-
-fun rust-handle/show(h: rust-handle): string
-  show-handle-inner(h.internal)
-
-extern get-memory-address(^box: any): io-noexn int64
-  c inline "(long)kk_box_to_ptr(box, _ctx)"
 
 fun section(desc)
   println("\n ===== " ++ desc ++ " =====")
@@ -56,8 +48,7 @@ fun main()
   println("Getting the length of a string indirectly returned: " ++ kkrs-callback1("hello", get-string-length).show)
 
   section("opaque pointers")
-  val h = rust-handle(3)
+  val h = kkrs-generate-handle(3.int32)
   println("Created handle from rust: " ++ h.show)
-  println("its address is " ++ get-memory-address(h.internal).show)
   println("Showing it again to validate refcounting: " ++ h.show)
   consume(h)
