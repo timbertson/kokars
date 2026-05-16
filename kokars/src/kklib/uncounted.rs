@@ -1,5 +1,6 @@
 use core::mem::ManuallyDrop;
 use core::ptr;
+use core::ops::Deref;
 
 /*
  * A copy of an owned value which is exempt
@@ -14,6 +15,13 @@ pub struct Uncounted<T> {
 	inner: ManuallyDrop<T>,
 }
 
+impl<T> Deref for Uncounted<T> {
+	type Target = T;
+	fn deref(&self) -> &T {
+		&self.inner.deref()
+	}
+}
+
 impl<T> Uncounted<T> {
 	pub unsafe fn unsafe_from_ref(value: &T) -> Uncounted<T> {
 		unsafe {
@@ -23,7 +31,7 @@ impl<T> Uncounted<T> {
 			Uncounted { inner }
 		}
 	}
-
+	
 	// We don't implement the Copy trait, since this method is unsafe
 	pub unsafe fn uncounted_copy(&self) -> Uncounted<T> {
 		unsafe {

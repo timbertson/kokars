@@ -19,6 +19,3 @@
 	ret name##_c(A a, B b, C c) { \
 		return name(a, b, c); \
 	}
-
-// This type is used in rust signatures, it needs to be valid in C too
-#define KkContext kk_context_t*

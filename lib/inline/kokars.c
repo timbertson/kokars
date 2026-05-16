@@ -6,9 +6,11 @@ reexport_static2(kk_function_t, kk_function_dup, kk_function_t, kk_context_t*);
 
 reexport_static2(void, kk_string_drop, kk_string_t, kk_context_t*);
 reexport_static2(kk_string_t, kk_string_dup, kk_string_t, kk_context_t*);
+reexport_static3(kk_string_t, kk_string_alloc_dupn_valid_utf8, kk_ssize_t, const uint8_t*, kk_context_t*);
 
 reexport_static2(void, kk_box_drop, kk_box_t, kk_context_t*);
 reexport_static2(kk_box_t, kk_box_dup, kk_box_t, kk_context_t*);
+reexport_static2(void*, kk_box_to_ptr, kk_box_t, kk_context_t*);
 
 reexport_static2(void, kk_integer_drop, kk_integer_t, kk_context_t*);
 reexport_static2(kk_integer_t, kk_integer_dup, kk_integer_t, kk_context_t*);

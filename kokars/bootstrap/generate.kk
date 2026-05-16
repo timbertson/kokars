@@ -1,8 +1,10 @@
 
 fun main()
+  println("#![allow(unused_doc_comments)]");
   println("use super::uncounted::Uncounted;");
 
   opaque_struct("kk_context", s_ctx(), can_box=False, assume_value_type=True)
+  opaque_struct("kk_block", s_block(), can_box=False, assume_value_type=True)
   opaque_struct("kk_box", s_box(), can_box=False)
 
   println("unsafe extern \"C\" {");
@@ -19,11 +21,16 @@ fun main()
 
 extern s_ctx(): ssize_t { c inline "sizeof(kk_context_t)" }
 extern s_box(): ssize_t { c inline "sizeof(kk_box_t)" }
+extern s_block(): ssize_t { c inline "sizeof(kk_block_t)" }
 extern s_string(): ssize_t { c inline "sizeof(kk_string_t)" }
 extern s_function(): ssize_t { c inline "sizeof(kk_function_t)" }
 extern s_tag(): ssize_t { c inline "sizeof(kk_tag_t)" }
 extern s_integer(): ssize_t { c inline "sizeof(kk_integer_t)" }
 extern s_ssize(): ssize_t { c inline "sizeof(kk_ssize_t)" }
+
+// These declarations exist for rust to understand existing C structs, don't
+// try to override the real struct definitions in generated C code
+val for_rust_only = "/// cbindgen:ignore"
 
 extern max_align_size(): ssize_t { c inline "MI_MAX_ALIGN_SIZE" }
 
@@ -38,6 +45,8 @@ fun opaque_struct(name, size: ssize_t, can_box = True, wrap_drop = True, assume_
   val drop_fn = name ++ (if wrap_drop then "_drop_c" else "_drop");
   val dup_fn = name ++ (if wrap_drop then "_dup_c" else "_dup");
   printlines([
+    "",
+    for_rust_only,
     "#[repr(C)]",
     "pub struct " ++ tname ++ " {",
     "  _opaque: [u8;" ++ size.int.show ++ "],",
@@ -46,12 +55,19 @@ fun opaque_struct(name, size: ssize_t, can_box = True, wrap_drop = True, assume_
 
   if !assume_value_type then
     if wrap_drop then
+      println(for_rust_only)
       println(extern_c("fn " ++ drop_fn ++ "(v: Uncounted<" ++ tname ++ ">, _ctx: *const kk_context_t);"));
+
+      println(for_rust_only)
       println(extern_c("fn " ++ dup_fn ++ "(v: Uncounted<" ++ tname ++ ">, _ctx: *const kk_context_t) -> " ++ tname ++ ";"));
 
     printlines([
+      for_rust_only,
       extern_c("fn " ++ name ++ "_dup(v: Uncounted<" ++ tname ++ ">, _ctx: *const kk_context_t) -> " ++ tname ++ ";"),
+
+      for_rust_only,
       extern_c("fn " ++ name ++ "_drop(v: Uncounted<" ++ tname ++ ">, _ctx: *const kk_context_t);"),
+
       // Clone takes a reference and returns a fresh value from *_dup()
       "impl Clone for " ++ tname ++ "{",
       "  fn clone(&self) -> Self {",
@@ -75,4 +91,5 @@ fun opaque_struct(name, size: ssize_t, can_box = True, wrap_drop = True, assume_
     ])
 
   if can_box then
+    println(for_rust_only)
     println(extern_c("fn " ++ name ++ "_box(v: " ++ tname ++ ", _ctx: *const kk_context_t) -> kk_box_t;"))
