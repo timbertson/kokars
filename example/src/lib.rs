@@ -15,15 +15,15 @@ pub extern "C" fn kk_hello_rs(_c: KkContext) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn kk_hello_rs_str(kk_str: kk_string_t, ctx: KkContext) {
+pub extern "C" fn kk_hello_rs_str(kk_str: Krc<kk_string_t>, ctx: KkContext) {
 	let str: &str = kk_string_as_str(&kk_str, ctx);
 	// drop(kk_str); // wouldn't compile!
 	println!("koka-string:[[{}]]", str);
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn kk_kkrs_callback1(kk_str: kk_string_t, cb: kk_function_t, ctx: KkContext) -> kk_integer_t {
-	println!("calling function {:?} with stringval {}", cb, kk_string_as_str(&kk_str, ctx));
+pub extern "C" fn kk_kkrs_callback1(kk_str: Krc<kk_string_t>, cb: Krc<kk_function_t>, ctx: KkContext) -> kk_integer_t {
+	println!("calling function with stringval {}", kk_string_as_str(&kk_str, ctx));
 	unsafe {
 		kk_function_call_1::<kk_string_t, kk_integer_t>(cb, kk_str, ctx)
 	}
@@ -46,7 +46,7 @@ pub extern "C" fn kk_generate_handle(i: i32, ctx: KkContext) -> kk_hello__rust_h
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn kk_show_handle(h: kk_hello__rust_handle, ctx: KkContext) -> kk_string_t {
+pub extern "C" fn kk_show_handle(h: Borrowed<kk_hello__rust_handle>, ctx: KkContext) -> Krc<kk_string_t> {
 	let ptr = h.value.as_ref(ctx);
 	let shown = format!("Handle({})", ptr.id);
 	kk_string_alloc_dup_valid_utf8(&shown, ctx)

@@ -1,7 +1,7 @@
 use libc::*;
 use super::generated::*;
 use super::context::*;
-use super::uncounted::*;
+use super::krc::*;
 use core::marker::PhantomData;
 
 extern crate alloc;
@@ -14,8 +14,8 @@ pub type kk_free_fun_t = unsafe extern "C" fn(*mut c_void, *const kk_block_t, Kk
 pub type KkFreeFun<T> = unsafe extern "C" fn(Box<T>, *const kk_block_t, KkContext);
 
 unsafe extern "C" {
-	fn kk_cptr_raw_box(free_fun: kk_free_fun_t, f: *mut c_void, _ctx: KkContext) -> kk_box_t;
-	fn kk_cptr_raw_unbox_borrowed(b: Uncounted<kk_box_t>, _ctx: KkContext) -> *mut c_void;
+	fn kk_cptr_raw_box(free_fun: kk_free_fun_t, f: *mut c_void, _ctx: KkContext) -> Krc<kk_box_t>;
+	fn kk_cptr_raw_unbox_borrowed(b: Borrowed<Krc<kk_box_t>>, _ctx: KkContext) -> *mut c_void;
 }
 
 // KkBox<T> is the koka representation of a Box<T>.
@@ -24,7 +24,7 @@ unsafe extern "C" {
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct KkBox<T:Sized> {
-	untyped: kk_box_t,
+	untyped: Krc<kk_box_t>,
 	_marker: PhantomData<T>,
 }
 
@@ -43,10 +43,14 @@ impl<T:Sized> KkBox<T> {
 			}
 		}
 	}
+
+	pub unsafe fn cast(untyped: Krc<kk_box_t>) -> KkBox<T> {
+		KkBox { untyped, _marker: PhantomData }
+	}
 	
 	pub fn as_ref<'a>(&'a self, ctx: KkContext) -> &'a T {
 		unsafe {
-			let ptr: *mut c_void = kk_cptr_raw_unbox_borrowed(Uncounted::unsafe_from_ref(&self.untyped), ctx);
+			let ptr: *mut c_void = kk_cptr_raw_unbox_borrowed(self.untyped.unsafe_borrow(), ctx);
 			core::mem::transmute::<*mut c_void, &'a T>(ptr)
 		}
 	}
@@ -79,3 +83,15 @@ impl<T> core::ops::Deref for KkBoxWrapper<T> {
 		&self.value
 	}
 }
+
+// impl<T> RefCounted for KkBoxWrapper<T> {
+// 	fn kk_incr(&self, ctx: KkContext) -> Krc<Self> {
+// 		// let box_copy: Borrowed<Krc<kk_box_t>> = self.value.untyped.unsafe_borrow();
+// 		let new_box = Krc::incr_via(kk_box_dup, &self.value.untyped, ctx);
+// 		KkBoxWrapper { value: KkBox::<T>::cast(new_box) }
+// 	}
+
+// 	fn kk_decr(&self, ctx: KkContext) {
+// 		Krc::decr_via(kk_box_drop, self.value.unsafe_borrow);
+// 	}
+// }

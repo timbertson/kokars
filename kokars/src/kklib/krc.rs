@@ -7,47 +7,54 @@ use super::size::*;
 use super::context::*;
 
 pub trait RefCounted : Sized {
-	fn kk_dup(&self, ctx: KkContext) -> Krc<Self>;
-	fn kk_drop(&self, ctx: KkContext);
+	fn kk_incr(&self, ctx: KkContext) -> Krc<Self>;
+	fn kk_decr(&self, ctx: KkContext);
 }
 
 /*
  * Krc<T> represents all standard koka refcounted values.
  * Clone and Drop implementations integrate with koka's `dup` and `drop` functionality.
  *
+ * Note that `T` should *not* have its own Drop implementation, the value should only be
+ * freed / finalized when the koka ref drops to zero.
+ *
  * All koka functions of type `a -> b` should be typed in rust as `Krc<a> -> Krc<b>`
  */
 #[repr(transparent)]
 pub struct Krc<T: RefCounted> {
-	value: ManuallyDrop<T>
+	value: T
 }
 
 impl<T: RefCounted> Krc<T> {
-	unsafe fn wrap(value: ManuallyDrop<T>) -> Self {
+	unsafe fn wrap_raw(value: T) -> Self {
 		Krc { value }
 	}
 
-	unsafe fn unsafe_borrow_raw(value: &T) -> Borrowed<T> {
+	unsafe fn unsafe_borrow_raw(value: &T) -> Borrowed<Krc<T>> {
 		unsafe {
 			let p : *const T = value;
 			let raw = ptr::read(p);
-			Borrowed { value: ManuallyDrop::new(raw) }
+			Borrowed { value: ManuallyDrop::new(Self::wrap_raw(raw)) }
 		}
 	}
+	
+	pub unsafe fn unsafe_borrow(&self) -> Borrowed<Krc<T>> {
+		unsafe { Self::unsafe_borrow_raw(&self.value) }
+	}
 
-	pub fn dup_via(f: extern "C" fn(value: Borrowed<T>, ctx: KkContext) -> Krc<T>, value: &T, ctx: KkContext) -> Krc<T> {
+	// helpers for implementing RefCounted using koka-generated C functions
+	pub fn incr_via(f: unsafe extern "C" fn(value: Borrowed<Krc<T>>, ctx: KkContext) -> Krc<T>, value: &T, ctx: KkContext) -> Krc<T> {
 		unsafe { f(Self::unsafe_borrow_raw(value), ctx) }
 	}
-	
-	pub unsafe fn unsafe_borrow(&self) -> Borrowed<T> {
-		unsafe { Self::unsafe_borrow_raw(&self.value) }
+	pub fn decr_via(f: unsafe extern "C" fn(value: Borrowed<Krc<T>>, ctx: KkContext), value: &T, ctx: KkContext) {
+		unsafe { f(Self::unsafe_borrow_raw(value), ctx) }
 	}
 }
 
 impl<T: RefCounted> Clone for Krc<T> {
 	fn clone(&self) -> Krc<T> {
 		unsafe {
-			self.value.kk_dup(kk_get_context())
+			self.value.kk_incr(kk_get_context())
 		}
 	}
 }
@@ -55,7 +62,7 @@ impl<T: RefCounted> Clone for Krc<T> {
 impl<T: RefCounted> Drop for Krc<T> {
 	fn drop(&mut self) {
 		unsafe {
-			self.value.kk_drop(kk_get_context());
+			self.value.kk_decr(kk_get_context());
 		}
 	}
 }
@@ -69,27 +76,37 @@ impl<T: RefCounted> core::ops::Deref for Krc<T> {
 
 
 /*
- * Borrowed<T> is similar to Krc<T> but no reference counting occurs.
+ * Borrowed<T> is a wrapper around a value to exclude it from reference counting.
+ * Functionally, it's an alias of `ManuallyDrop`.
+ *
  * It should only be used for:
  *  - borrowed parameters (e.g. foo(^a): ())
  *  - passing to low-level C functions that operate on a borrowed value
  *    (these typically include `borrow` in the function name).
  */
-// TODO: add lifetime annotation to make this safe
+// TODO: add lifetime annotation to make this safe?
 #[repr(transparent)]
-pub struct Borrowed<T: RefCounted> {
+pub struct Borrowed<T> {
 	value: ManuallyDrop<T>
 }
 
-impl<T: RefCounted> Borrowed<T> {
-	pub fn clone(&self) -> Krc<T> {
-		unsafe {
-			self.value.kk_dup(kk_get_context())
-		}
+impl<T: Clone> Borrowed<T> {
+	pub fn clone(&self) -> T {
+		ManuallyDrop::into_inner(self.value.clone())
 	}
-	
-	unsafe fn into_inner(self) -> ManuallyDrop<T> {
-		self.value
+}
+
+impl<T: RefCounted> Borrowed<Krc<T>> {
+	pub unsafe fn unsafe_copy(&self) -> Borrowed<Krc<T>> {
+		unsafe { Krc::unsafe_borrow(&self.value) }
+	}
+}
+
+impl<T> core::ops::Deref for Borrowed<T> {
+	type Target = T;
+
+	fn deref(&self) -> &T {
+		&self.value
 	}
 }
 
@@ -99,15 +116,6 @@ impl<T: RefCounted> Borrowed<T> {
  */
 pub struct Unique<T: RefCounted> {
 	value: Krc<T>
-}
-
-impl<T: RefCounted> Unique<T> {
-	pub fn replace<R: RefCounted, F: FnOnce(ManuallyDrop<T>) -> R>(self, f: F) -> Unique<R> {
-		unsafe {
-			let replacement = f(self.value.unsafe_borrow().into_inner());
-			Unique { value: Krc::wrap(ManuallyDrop::new(replacement)) }
-		}
-	}
 }
 
 impl<T: RefCounted> core::ops::Deref for Unique<T> {

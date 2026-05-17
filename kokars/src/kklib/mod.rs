@@ -5,9 +5,6 @@ mod nostd; // no need to export this
 mod generated;
 pub use generated::*;
 
-mod uncounted;
-pub use uncounted::*;
-
 mod function;
 pub use function::*;
 

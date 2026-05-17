@@ -1,7 +1,7 @@
 
 fun main()
   println("#![allow(unused_doc_comments)]");
-  println("use super::uncounted::Uncounted;");
+  println("use super::krc::*;");
 
   opaque_struct("kk_context", s_ctx(), can_box=False, assume_value_type=True)
   opaque_struct("kk_block", s_block(), can_box=False, assume_value_type=True)
@@ -56,38 +56,50 @@ fun opaque_struct(name, size: ssize_t, can_box = True, wrap_drop = True, assume_
   if !assume_value_type then
     if wrap_drop then
       println(for_rust_only)
-      println(extern_c("fn " ++ drop_fn ++ "(v: Uncounted<" ++ tname ++ ">, _ctx: *const kk_context_t);"));
+      println(extern_c("fn " ++ drop_fn ++ "(v: Borrowed<Krc<" ++ tname ++ ">>, _ctx: *const kk_context_t);"));
 
       println(for_rust_only)
-      println(extern_c("fn " ++ dup_fn ++ "(v: Uncounted<" ++ tname ++ ">, _ctx: *const kk_context_t) -> " ++ tname ++ ";"));
+      println(extern_c("fn " ++ dup_fn ++ "(v: Borrowed<Krc<" ++ tname ++ ">>, _ctx: *const kk_context_t) -> Krc<" ++ tname ++ ">;"));
 
     printlines([
       for_rust_only,
-      extern_c("fn " ++ name ++ "_dup(v: Uncounted<" ++ tname ++ ">, _ctx: *const kk_context_t) -> " ++ tname ++ ";"),
+      extern_c("fn " ++ name ++ "_dup(v: Borrowed<Krc<" ++ tname ++ ">>, _ctx: *const kk_context_t) -> Krc<" ++ tname ++ ">;"),
 
       for_rust_only,
-      extern_c("fn " ++ name ++ "_drop(v: Uncounted<" ++ tname ++ ">, _ctx: *const kk_context_t);"),
+      extern_c("fn " ++ name ++ "_drop(v: Borrowed<Krc<" ++ tname ++ ">>, _ctx: *const kk_context_t);"),
 
-      // Clone takes a reference and returns a fresh value from *_dup()
-      "impl Clone for " ++ tname ++ "{",
-      "  fn clone(&self) -> Self {",
+      // Implement RefCounted for all generated types
+      "impl RefCounted for " ++ tname ++ "{",
+      "  fn kk_incr(&self, ctx: *const kk_context_t) -> Krc<Self> {",
       // "    println!(\"[dup:" ++ tname ++ "]\");",
-      "    unsafe {",
-      "      " ++ dup_fn ++ "(Uncounted::unsafe_from_ref(self), kk_get_context())",
-      "    }",
+      "    Krc::incr_via(" ++ dup_fn ++ ", self, ctx)",
+      "  }",
+      "  fn kk_decr(&self, ctx: *const kk_context_t) {",
+      // "    println!(\"[dup:" ++ tname ++ "]\");",
+      "    Krc::decr_via(" ++ drop_fn ++ ", self, ctx)",
       "  }",
       "}",
 
-      // Drop performs a _drop on every koka value
-      "impl Drop for " ++ tname ++ "{",
-      "  fn drop(&mut self) {",
-      // "    println!(\"[drop:" ++ tname ++ "]\");",
-      "    unsafe {",
-             // TODO can we pass in the ctx somehow?
-      "      " ++ drop_fn ++ "(Uncounted::unsafe_from_ref(self), kk_get_context())",
-      "    }",
-      "  }",
-      "}",
+      // // Clone takes a reference and returns a fresh value from *_dup()
+      // "impl Clone for " ++ tname ++ "{",
+      // "  fn clone(&self) -> Self {",
+      // // "    println!(\"[dup:" ++ tname ++ "]\");",
+      // "    unsafe {",
+      // "      " ++ dup_fn ++ "(Borrowed::unsafe_from_ref(self), kk_get_context())",
+      // "    }",
+      // "  }",
+      // "}",
+
+      // // Drop performs a _drop on every koka value
+      // "impl Drop for " ++ tname ++ "{",
+      // "  fn drop(&mut self) {",
+      // // "    println!(\"[drop:" ++ tname ++ "]\");",
+      // "    unsafe {",
+      //        // TODO can we pass in the ctx somehow?
+      // "      " ++ drop_fn ++ "(Borrowed::unsafe_from_ref(self), kk_get_context())",
+      // "    }",
+      // "  }",
+      // "}",
     ])
 
   if can_box then

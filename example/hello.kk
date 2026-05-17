@@ -27,7 +27,7 @@ struct rust-handle {
 extern kkrs-generate-handle(i: int32): rust-handle
   c "kk_generate_handle"
 
-extern rust-handle/show(h: rust-handle): string
+extern rust-handle/show(^h: rust-handle): string
   c "kk_show_handle"
 
 fun section(desc)
