@@ -11,6 +11,7 @@ reexport_static3(kk_string_t, kk_string_alloc_dupn_valid_utf8, kk_ssize_t, const
 reexport_static2(void, kk_box_drop, kk_box_t, kk_context_t*);
 reexport_static2(kk_box_t, kk_box_dup, kk_box_t, kk_context_t*);
 reexport_static2(void*, kk_box_to_ptr, kk_box_t, kk_context_t*);
+reexport_static1(bool, kk_box_is_ptr, kk_box_t);
 
 reexport_static2(void, kk_integer_drop, kk_integer_t, kk_context_t*);
 reexport_static2(kk_integer_t, kk_integer_dup, kk_integer_t, kk_context_t*);
@@ -18,6 +19,8 @@ reexport_static2(kk_integer_t, kk_integer_dup, kk_integer_t, kk_context_t*);
 reexport_static3(const char*, kk_string_cbuf_borrow, const kk_string_t, kk_ssize_t*, kk_context_t*);
 
 reexport_static2(void, kk_free, char*, kk_context_t*);
+
+reexport_static1(kk_refcount_t, kk_block_refcount, const kk_block_t*);
 
 typedef void (*void_fn_ptr)();
 

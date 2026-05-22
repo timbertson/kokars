@@ -1,6 +1,7 @@
-
 fun main()
   println("#![allow(unused_doc_comments)]");
+
+  // println("use libc_print::std_name::println;");
   println("use super::krc::*;");
 
   opaque_struct("kk_context", s_ctx(), can_box=False, assume_value_type=True)
@@ -18,6 +19,7 @@ fun main()
   opaque_struct("kk_string", s_string())
   opaque_struct("kk_function", s_function())
   opaque_struct("kk_integer", s_integer())
+  // opaque_struct("kk_kokars__box_wrapper", s_box_wrapper())
 
 extern s_ctx(): ssize_t { c inline "sizeof(kk_context_t)" }
 extern s_box(): ssize_t { c inline "sizeof(kk_box_t)" }
@@ -27,6 +29,7 @@ extern s_function(): ssize_t { c inline "sizeof(kk_function_t)" }
 extern s_tag(): ssize_t { c inline "sizeof(kk_tag_t)" }
 extern s_integer(): ssize_t { c inline "sizeof(kk_integer_t)" }
 extern s_ssize(): ssize_t { c inline "sizeof(kk_ssize_t)" }
+// extern s_box_wrapper(): ssize_t { c inline "sizeof(kk_bootstrap_generate__box_wrapper)" }
 
 // These declarations exist for rust to understand existing C structs, don't
 // try to override the real struct definitions in generated C code
@@ -70,13 +73,13 @@ fun opaque_struct(name, size: ssize_t, can_box = True, wrap_drop = True, assume_
 
       // Implement RefCounted for all generated types
       "impl RefCounted for " ++ tname ++ "{",
-      "  fn kk_incr(&self, ctx: *const kk_context_t) -> Krc<Self> {",
-      // "    println!(\"[dup:" ++ tname ++ "]\");",
-      "    Krc::incr_via(" ++ dup_fn ++ ", self, ctx)",
+      "  fn kk_incr(value: &Krc<Self>, ctx: *const kk_context_t) -> Krc<Self> {",
+      // "    println!(\"[incr:" ++ tname ++ "]\");",
+      "    Krc::incr_via(" ++ dup_fn ++ ", value, ctx)",
       "  }",
-      "  fn kk_decr(&self, ctx: *const kk_context_t) {",
-      // "    println!(\"[dup:" ++ tname ++ "]\");",
-      "    Krc::decr_via(" ++ drop_fn ++ ", self, ctx)",
+      "  fn kk_decr(value: &Krc<Self>, ctx: *const kk_context_t) {",
+      // "    println!(\"[decr:" ++ tname ++ "]\");",
+      "    Krc::decr_via(" ++ drop_fn ++ ", value, ctx)",
       "  }",
       "}",
 

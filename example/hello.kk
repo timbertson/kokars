@@ -20,12 +20,22 @@ extern str/hello-kkrs(s: string): io-noexn ()
 extern kkrs-callback1(s: string, f: (string) -> io-noexn int): io-noexn int
   c "kk_kkrs_callback1"
 
+// for documentation purposes - no type safety here
+alias raw-handle = any
+
 struct rust-handle {
-  internal: any
+  internal: raw-handle
 }
 
 extern kkrs-generate-handle(i: int32): rust-handle
   c "kk_generate_handle"
+
+extern raw-increment-id(h: raw-handle): raw-handle
+  c "kk_handle_increment_id"
+  
+fun increment-id(h: rust-handle)
+  match h
+    Rust-handle(inner) -> Rust-handle(raw-increment-id(inner))
 
 extern rust-handle/show(^h: rust-handle): string
   c "kk_show_handle"
@@ -49,6 +59,16 @@ fun main()
 
   section("opaque pointers")
   val h = kkrs-generate-handle(3.int32)
-  println("Created handle from rust: " ++ h.show)
-  println("Showing it again to validate refcounting: " ++ h.show)
+  println("Created handle from rust:")
+  println(h.show)
+  println("Showing it again to validate refcounting:")
+  println(h.show)
   consume(h)
+
+
+  section("uniqueness optimisation")
+  val h1 = kkrs-generate-handle(5.int32)
+  val h2 = h1.increment-id()
+  val h3 = h2.increment-id()
+  println("h2 is: " ++ h2.show)
+  println("h3 is: " ++ h3.show)

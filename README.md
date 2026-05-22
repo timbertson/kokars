@@ -60,3 +60,7 @@ Then your koka code imports the `kokars` (koka) module, ensuring everything the 
 Lowercase types (e.g. `kk_string_t`) are the regular koka types. Titlecase types like `KkFunction` are rust wrappers, often adding additional type safetly or functionality not directly exposed in koka's C API.
 
 Functions with `_c` appended are reexports of static functions - e.g. `kk_to_ssize_t_c` is a regular function (visible to the linker) which invokes the `kk_to_ssize_t` static C function (not visible to the linker).
+
+# Memory safety rules
+
+All values crossing the koka <-> rust bounddary must be of type `Krc<_>` OR `KrcBox<T>`
