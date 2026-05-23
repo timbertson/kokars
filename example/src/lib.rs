@@ -55,21 +55,22 @@ pub extern "C" fn kk_generate_handle(i: i32, ctx: KkContext) -> kk_hello__rust_h
 // TODO could this be derived?
 #[unsafe(no_mangle)]
 pub extern "C" fn kk_show_handle(h: Borrowed<Krc<kk_hello__rust_handle>>, ctx: KkContext) -> Krc<kk_string_t> {
-	let shown = format!("{:?}", &h.value.as_ref(ctx));
+	let handle: &Handle = &*h;
+	let shown = format!("{:?}", handle);
 	kk_string_alloc_dup_valid_utf8(&shown, ctx)
 }
 
 // You might use this pattern if mutating is significantly cheaper (or more common) than copying.
-// Note that rust doesn't have easy access to construct a new KkBoxWrapper
+// Note that this is best used on raw `any` types from koka. Destructuring the wrapper
+// struct is more efficiently done in koka.
 #[unsafe(no_mangle)]
-pub extern "C" fn kk_handle_increment_id(h: KkBox<Handle>, ctx: KkContext) -> KkBox<Handle> {
-	h.mutate_or_copy(|owned: &mut Handle, _ctx| {
+pub extern "C" fn kk_handle_increment_id(h: Krc<KkBox<Handle>>, ctx: KkContext) -> Krc<KkBox<Handle>> {
+	h.mutate_or_copy(|owned: &mut KkBox<Handle>, _ctx| {
 		println!("Mutating handle: {:?}", owned);
 		owned.id += 1;
-	}, |shared: KkBox<Handle>, ctx| {
-		let old_handle: &Handle = shared.as_ref(ctx);
-		println!("Making a copy of handle: {:?}", &old_handle);
-		KkBox::new(kk_free_handle, Handle { id: old_handle.id + 1 }, ctx)
+	}, |shared: Krc<KkBox<Handle>>, ctx| {
+		println!("Making a copy of handle: {:?}", shared);
+		KkBox::new(kk_free_handle, Handle { id: shared.id + 1 }, ctx)
 	}, ctx)
 }
 

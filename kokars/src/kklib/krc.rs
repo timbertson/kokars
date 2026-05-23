@@ -1,8 +1,10 @@
 use core::ops::Drop;
 use core::clone::Clone;
 use core::ptr;
+use core::fmt;
 use core::mem::ManuallyDrop;
 use core::cell::UnsafeCell;
+use core::ops::Deref;
 use libc::*;
 
 use super::size::*;
@@ -13,12 +15,14 @@ pub trait RefCounted : Sized {
 	fn kk_decr(value: &Krc<Self>, ctx: KkContext);
 }
 
-// This is separate to `RefCounted` since
-// objects which are not within a Krc<T>
-// can implement HasRefCount via delgation.
+// This is separate to `RefCounted` since it's only needed if you
+// want to perform mutations for unique values
 pub trait HasRefCount {
 	fn get_refcount(&self, ctx: KkContext) -> kk_refcount_t;
 }
+
+// a marker trait asserting that types A and B have the same memory layout
+pub trait KkRepr<A> {}
 
 /*
  * Krc<T> represents all standard koka refcounted values.
@@ -47,10 +51,20 @@ impl<T: RefCounted> Krc<T> {
 		}
 	}
 
+	pub unsafe fn cast_repr<R : RefCounted + KkRepr<T>>(self: Krc<T>) -> Krc<R> {
+		let result = unsafe { core::mem::transmute_copy::<Krc<T>, Krc<R>>(&self) };
+		core::mem::forget(self);
+		result
+	}
+
+	pub unsafe fn cast_repr_ref<R : RefCounted + KkRepr<T>>(&self) -> &Krc<R> {
+		unsafe { core::mem::transmute(self) }
+	}
+
 	pub unsafe fn unsafe_borrow(&self) -> Borrowed<Krc<T>> {
 		unsafe { Self::unsafe_borrow_raw(&self.value) }
 	}
-
+	
 	// helpers for implementing RefCounted using koka-generated C functions
 	pub fn incr_via(f: unsafe extern "C" fn(value: Borrowed<Krc<T>>, ctx: KkContext) -> Krc<T>, value: &Krc<T>, ctx: KkContext) -> Krc<T> {
 		unsafe { f(value.unsafe_borrow(), ctx) }
@@ -100,6 +114,13 @@ impl<T: RefCounted> core::ops::Deref for Krc<T> {
 	}
 }
 
+impl<T: fmt::Debug + RefCounted> fmt::Debug for Krc<T> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+		let inner: &T = self.deref();
+		inner.fmt(f)
+	}
+}
+
 /*
  * Borrowed<T> is a wrapper around a value to exclude it from reference counting.
  * Functionally, it's an alias of `ManuallyDrop`.
@@ -132,6 +153,12 @@ impl<T> Borrowed<T> {
 }
 
 impl<T: RefCounted> Borrowed<Krc<T>> {
+	pub unsafe fn cast_repr<R : RefCounted + KkRepr<T>>(self: Borrowed<Krc<T>>) -> Borrowed<Krc<R>> {
+		let result = unsafe { core::mem::transmute_copy::<Borrowed<Krc<T>>, Borrowed<Krc<R>>>(&self) };
+		core::mem::forget(self);
+		result
+	}
+
 	pub unsafe fn unsafe_copy(&self) -> Borrowed<Krc<T>> {
 		unsafe { Krc::unsafe_borrow(&self.value) }
 	}

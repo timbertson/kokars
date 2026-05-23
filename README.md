@@ -63,4 +63,15 @@ Functions with `_c` appended are reexports of static functions - e.g. `kk_to_ssi
 
 # Memory safety rules
 
-All values crossing the koka <-> rust bounddary must be of type `Krc<_>` OR `KrcBox<T>`
+All values exposed to (or received from) koka must be of type `Krc<_>`. This implements koka's reference counting rules. If you have a `Krc<T>` you cannot (safely) extract the raw `T`, you can only get shared a reference to it.
+
+This wrapping is not required for primitive types which are guaranteed to be passed by value, e.g. it's allowed to accept a simple `i32` argument rather than `Krc<i32>`.
+
+In some cases you may need to use a `Borrowed<Krc<T>>`, which can only be constructed in `unsafe` code. This is a copy of the underlying `T` which does not participate in reference counting. `Borrow` should only be used for:
+
+ - C functions which accept a raw koka value but do not participate in reference counting (usually these will have `borrow` in their name)
+ - The implementation of a koka function which is declared with a borrowed argument (e.g. `fun foo(^value)`)
+
+# Uniqueness optimisations
+
+`Krc<T>` implements `mutate_or_copy`, which allows for direct mutation of the underlying value (via a `&mut` reference), but only when this is the only reference to this data. If the value has more than one reference, it's passed to the second argument which must create an equivalent result by copying the shared reference.
