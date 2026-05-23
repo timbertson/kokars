@@ -38,19 +38,6 @@ impl<T> KkRepr<kk_box_t> for KkBox<T> {}
 impl<T> KkRepr<KkBox<T>> for kk_box_t {}
 
 impl<T:Sized> KkBox<T> {
-	pub fn new(drop_fn: KkFreeFun<T>, value: T, _ctx: KkContext) -> Krc<KkBox<T>> {
-		Self::wrap(drop_fn, Box::new(value), _ctx)
-	}
-
-	pub fn wrap(drop_fn: KkFreeFun<T>, value: Box<T>, _ctx: KkContext) -> Krc<KkBox<T>> {
-		let box_ptr = Box::<T>::into_raw(value);
-		unsafe {
-			let untyped_drop_fn = core::mem::transmute::<KkFreeFun<T>, kk_free_fun_t>(drop_fn);
-			let untyped = kk_cptr_raw_box(untyped_drop_fn, box_ptr.cast::<c_void>(), _ctx);
-			untyped.cast_repr()
-		}
-	}
-
 	fn mut_ptr(&self) -> *mut T {
 		unsafe {
 			let ctx = kk_get_context();
@@ -58,6 +45,21 @@ impl<T:Sized> KkBox<T> {
 			let borrowed_box: Borrowed<Krc<kk_box_t>> = Borrowed::unsafe_wrap_raw(Krc::unsafe_wrap_raw(direct_box));
 			let ptr: *mut c_void = kk_cptr_raw_unbox_borrowed(borrowed_box, ctx);
 			core::mem::transmute::<*mut c_void, *mut T>(ptr)
+		}
+	}
+}
+
+impl<T:Sized + KkDrop> KkBox<T> {
+	pub fn new(value: T, _ctx: KkContext) -> Krc<KkBox<T>> {
+		Self::wrap(Box::new(value), _ctx)
+	}
+
+	pub fn wrap(value: Box<T>, _ctx: KkContext) -> Krc<KkBox<T>> {
+		let box_ptr = Box::<T>::into_raw(value);
+		unsafe {
+			let untyped_drop_fn = core::mem::transmute::<KkFreeFun<T>, kk_free_fun_t>(T::kk_drop);
+			let untyped = kk_cptr_raw_box(untyped_drop_fn, box_ptr.cast::<c_void>(), _ctx);
+			untyped.cast_repr()
 		}
 	}
 }
@@ -135,14 +137,6 @@ impl<T> KkBoxWrapper<T> {
 	}
 }
 
-// impl<T> Krc<KkBoxWrapper<T>> {
-// 	pub unsafe fn unsafe_cast<R>(self) -> Krc<KkBoxWrapper<R>> {
-// 		unsafe {
-// 			ptr::read((&self as *const Krc<KkBoxWrapper<T>>) as *const Krc<KkBoxWrapper<R>>)
-// 		}
-// 	}
-// }
-
 impl<T: fmt::Debug> fmt::Debug for KkBoxWrapper<T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
 		let inner: &T = self.deref();
@@ -164,4 +158,15 @@ impl<T> RefCounted for KkBoxWrapper<T> {
 	}
 
 	fn kk_decr(_value: &Krc<Self>, _ctx: KkContext) {}
+}
+
+pub trait KkDrop {
+	unsafe extern "C" fn kk_drop(h: Box<Self>, _block: *const kk_block_t, _ctx: KkContext);
+}
+
+#[allow(drop_bounds)]
+impl<T: Drop> KkDrop for T {
+	unsafe extern "C" fn kk_drop(value: Box<T>, _block: *const kk_block_t, _ctx: KkContext) {
+		drop(value);
+	}
 }

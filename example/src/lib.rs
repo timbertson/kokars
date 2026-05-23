@@ -49,7 +49,7 @@ type kk_hello__rust_handle = KkBoxWrapper<Handle>;
 #[unsafe(no_mangle)]
 pub extern "C" fn kk_generate_handle(i: i32, ctx: KkContext) -> kk_hello__rust_handle {
 	println!("Allocating handle: {}", i);
-	KkBoxWrapper::new(KkBox::new(kk_free_handle, Handle { id: i }, ctx))
+	KkBoxWrapper::new(KkBox::new(Handle { id: i }, ctx))
 }
 
 // TODO could this be derived?
@@ -70,18 +70,15 @@ pub extern "C" fn kk_handle_increment_id(h: Krc<KkBox<Handle>>, ctx: KkContext) 
 		owned.id += 1;
 	}, |shared: Krc<KkBox<Handle>>, ctx| {
 		println!("Making a copy of handle: {:?}", shared);
-		KkBox::new(kk_free_handle, Handle { id: shared.id + 1 }, ctx)
+		KkBox::new(Handle { id: shared.id + 1 }, ctx)
 	}, ctx)
 }
 
+// Heap-allocated rust values can be stored in a Krc<KkBox<T>>.
+// When the last reference to this value is dropped, the
+// rust Drop function will be invoked.
 impl Drop for Handle {
 	fn drop(&mut self) {
 		println!("Dropping handle: {}", self.id);
 	}
-}
-
-// TODO this could be generated with a macro
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn kk_free_handle(h: Box<Handle>, _block: *const kk_block_t, _ctx: KkContext) {
-	drop(h)
 }
