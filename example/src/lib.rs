@@ -70,7 +70,7 @@ pub extern "C" fn kk_handle_increment_id(h: Krc<KkBox<Handle>>, ctx: KkContext) 
 
 // Heap-allocated rust values can be stored in a Krc<KkBox<T>>.
 // When the last reference to this value is dropped, the
-// rust Drop function will be invoked.
+// rust Drop implementation will be invoked.
 impl Drop for Handle {
 	fn drop(&mut self) {
 		println!("Dropping handle: {}", self.id);
