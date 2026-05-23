@@ -2,12 +2,8 @@
 #![allow(unused_doc_comments)]
 #![allow(non_camel_case_types)]
 
-extern crate alloc;
-
 use kokars::kklib::*;
 use libc_print::std_name::println;
-use alloc::boxed::Box;
-use alloc::format;
 use core::fmt;
 
 #[unsafe(no_mangle)]
@@ -52,12 +48,10 @@ pub extern "C" fn kk_generate_handle(i: i32, ctx: KkContext) -> kk_hello__rust_h
 	KkBoxWrapper::new(KkBox::new(Handle { id: i }, ctx))
 }
 
-// TODO could this be derived?
+// Use KkShow to implement a koka `show` function for any `Debug` type
 #[unsafe(no_mangle)]
 pub extern "C" fn kk_show_handle(h: Borrowed<Krc<kk_hello__rust_handle>>, ctx: KkContext) -> Krc<kk_string_t> {
-	let handle: &Handle = &*h;
-	let shown = format!("{:?}", handle);
-	kk_string_alloc_dup_valid_utf8(&shown, ctx)
+	KkShow::show(&h, ctx)
 }
 
 // You might use this pattern if mutating is significantly cheaper (or more common) than copying.
